@@ -74,6 +74,23 @@ func TestOpenExisting(t *testing.T) {
 	fileCount(dir, 1, t)
 }
 
+func TestFileMode(t *testing.T) {
+	currentTime = fakeTime
+
+	dir := makeTempDir("TestNewFileWithMode0600", t)
+	defer os.RemoveAll(dir)
+	l := &Logger{
+		Filename: logFile(dir),
+		FileMode: 0600,
+	}
+	defer l.Close()
+	b := []byte("boo!")
+	n, err := l.Write(b)
+	isNil(err, t)
+	equals(len(b), n, t)
+	assertFileMode(logFile(dir), 0600, t)
+}
+
 func TestWriteTooLong(t *testing.T) {
 	currentTime = fakeTime
 	megabyte = 1
@@ -770,6 +787,12 @@ func existsWithContent(path string, content []byte, t testing.TB) {
 	b, err := ioutil.ReadFile(path)
 	isNilUp(err, t, 1)
 	equalsUp(content, b, t, 1)
+}
+
+func assertFileMode(fileName string, expectMode os.FileMode, t testing.TB) {
+	info, err := os.Stat(fileName)
+	isNilUp(err, t, 1)
+	equalsUp(uint32(info.Mode()), uint32(expectMode), t, 1)
 }
 
 // logFile returns the log file name in the given directory for the current fake

@@ -107,6 +107,9 @@ type Logger struct {
 	// using gzip. The default is not to perform compression.
 	Compress bool `json:"compress" yaml:"compress"`
 
+	// FileMode determines the os access mode for log files.
+	FileMode os.FileMode `json:"filemode" yaml:"filemode"`
+
 	size int64
 	file *os.File
 	mu   sync.Mutex
@@ -213,6 +216,11 @@ func (l *Logger) openNew() error {
 
 	name := l.filename()
 	mode := os.FileMode(0600)
+
+	if l.FileMode != 0 {
+		mode = l.FileMode
+	}
+
 	info, err := osStat(name)
 	if err == nil {
 		// Copy the mode off the old logfile.
@@ -273,11 +281,16 @@ func (l *Logger) openExistingOrNew(writeLen int) error {
 		return fmt.Errorf("error getting log file info: %s", err)
 	}
 
+	mode := l.FileMode
+	if mode == 0 {
+		mode = info.Mode()
+	}
+
 	if info.Size()+int64(writeLen) >= l.max() {
 		return l.rotate()
 	}
 
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, mode)
 	if err != nil {
 		// if we fail to open the old log file for some reason, just ignore
 		// it and open a new log file.

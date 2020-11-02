@@ -13,5 +13,6 @@ func Example() {
 		MaxBackups: 3,
 		MaxAge:     28,   // days
 		Compress:   true, // disabled by default
+		FileMode:   0775,
 	})
 }
